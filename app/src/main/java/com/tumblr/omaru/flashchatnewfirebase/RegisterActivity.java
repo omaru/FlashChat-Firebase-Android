@@ -1,10 +1,10 @@
-package com.londonappbrewery.flashchatnewfirebase;
+package com.tumblr.omaru.flashchatnewfirebase;
 
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
@@ -14,9 +14,13 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
 
+import org.apache.commons.validator.routines.EmailValidator;
 
 
 public class RegisterActivity extends AppCompatActivity {
@@ -33,7 +37,7 @@ public class RegisterActivity extends AppCompatActivity {
     private EditText mConfirmPasswordView;
 
     // Firebase instance variables
-
+    private FirebaseAuth firebaseAuth;
 
 
     @Override
@@ -58,8 +62,7 @@ public class RegisterActivity extends AppCompatActivity {
             }
         });
 
-        // TODO: Get hold of an instance of FirebaseAuth
-
+        firebaseAuth = FirebaseAuth.getInstance();
 
     }
 
@@ -104,29 +107,51 @@ public class RegisterActivity extends AppCompatActivity {
             // form field with an error.
             focusView.requestFocus();
         } else {
-            // TODO: Call create FirebaseUser() here
-
+            createFirebaseUser(email,password);
         }
     }
 
     private boolean isEmailValid(String email) {
-        // You can add more checking logic here.
-        return email.contains("@");
+        return EmailValidator.getInstance().isValid(email);
     }
 
     private boolean isPasswordValid(String password) {
-        //TODO: Add own logic to check for a valid password
-        return true;
+        String confirmPassword = mConfirmPasswordView.getText().toString();
+        return confirmPassword.equals(password) && password.length() > 4;
     }
 
-    // TODO: Create a Firebase user
+    private void createFirebaseUser(String email,String password){
+        Task<AuthResult> result = firebaseAuth.createUserWithEmailAndPassword(email,password);
+        result.addOnCompleteListener(this, new OnCompleteListener<AuthResult>() {
+            @Override
+            public void onComplete(@NonNull Task<AuthResult> task) {
+                Log.d("FlashChat","createUser onComplete: "+task.isSuccessful());
+                if(!task.isSuccessful()){
+                    Log.d("FlashChat","user creation failed "+task.getException());
+                    showErrorDialog("Registration attempt failed");
+                }else{
+                    saveDisplayName();
+                    Intent loginActivity = new Intent(RegisterActivity.this,LoginActivity.class);
+                    finish();
+                    startActivity(loginActivity);
+                }
+            }
+        });
+    }
 
+    private void saveDisplayName(){
+        String displayName = mUsernameView.getText().toString();
+        SharedPreferences sharedPreferences = getSharedPreferences(CHAT_PREFS,0);
+        sharedPreferences.edit().putString(DISPLAY_NAME_KEY,displayName).apply();
+    }
 
-    // TODO: Save the display name to Shared Preferences
-
-
-    // TODO: Create an alert dialog to show in case registration failed
-
+    private void showErrorDialog(String message){
+        new AlertDialog.Builder(this).setTitle("Oops")
+                .setMessage(message)
+                .setPositiveButton(android.R.string.ok,null)
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
+    }
 
 
 

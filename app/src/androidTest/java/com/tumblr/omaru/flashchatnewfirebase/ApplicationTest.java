@@ -1,4 +1,4 @@
-package com.londonappbrewery.flashchatnewfirebase;
+package com.tumblr.omaru.flashchatnewfirebase;
 
 import android.app.Application;
 import android.test.ApplicationTestCase;
